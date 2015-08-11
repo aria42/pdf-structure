@@ -65,19 +65,29 @@ module PDFStructure {
    * Convert PDF.js PDFPromise to a normal ES6 Promise
    */
   function toPromise<T>(pdfPromise: PDFPromise<T>): Promise<T> {
-    return new Promise<T>((resolve, reject) => pdfPromise.then(resolve, reject));
+    return new Promise<T>((success, fail) => pdfPromise.then(success, fail));
+  }
+
+  interface PageData {
+    viewBounds: number[],
+    textContent: TextContent
+  }
+
+  function toPageData(page: PDFPageProxy): Promise<PageData> {
+    return toPromise(page.getTextContent())
+      .then(content => {
+        return {viewBounds: page.view, textContent: content}
+      })
   }
 
   export function getSectionData(pdf: PDFDocumentProxy): Promise<StructureData> {
-    var pagePromises: Promise<[number[], TextContent]>[] = [];
+    var pagePromises: Promise<PageData>[] = [];
     for (var idx=0; idx < pdf.numPages; ++idx) {
-      var textContentPromise = toPromise(pdf.getPage(idx + 1))
-      .then(page => toPromise(page.getTextContent()).then(content => [page.view, content]))
-      pagePromises.push(textContentPromise)
+      var page = pdf.getPage(idx + 1)
+      pagePromises.push(toPromise(page).then(toPageData))
     }
     return Promise.all(pagePromises)
-      .then(toStructuredData,
-            (e) => { console.error("Error reading PDF:", e) })
+      .then(toStructuredData,(e) => { console.error("Error reading PDF:", e) })
   }
 
   function findMergedTextBlocks(contentItems: TextContentItem[]): MergedTextBlock[] {
@@ -105,14 +115,14 @@ module PDFStructure {
   }
 
 
-  function toStructuredData(pageBoundContentPairs: [number[], TextContent][]): StructureData {
+  function toStructuredData(pageBoundContentPairs: PageData[]): StructureData {
     var sectonData: SectionData[] = []
     var blocks: MergedTextBlock[][] = []
     for (var idx in pageBoundContentPairs) {
-      var pageBounds = pageBoundContentPairs[idx][0]
-      var pageContent = pageBoundContentPairs[idx][1]
-      var mergedBlocks = findMergedTextBlocks(pageContent.items)
-      var midX = (pageBounds[2] - pageBounds[0]) / 2.0
+      idx = parseInt(idx)
+      var pd: PageData = pageBoundContentPairs[idx]
+      var mergedBlocks = findMergedTextBlocks(pd.textContent.items)
+      var midX = (pd.viewBounds[2] - pd.viewBounds[0]) / 2.0
       mergedBlocks.forEach(block => {
         var span = block.xSpan()
         if (midX >= span[0] && midX <= span[1]) {
@@ -122,7 +132,11 @@ module PDFStructure {
         }
       })
       blocks.push(mergedBlocks)
-      var pageSections = mergedBlocks.map(block => toSectionData(block, parseInt(idx)))
+      var pageSections = mergedBlocks.map(block => {
+          var sectionData = toSectionData(block)
+          sectonData.pageIdx = idx
+          return sectionData
+        })
         .filter(x => x != null)
       pageSections.forEach(content => {
         console.info("SECTION: " + content.contentItem.str())
@@ -143,7 +157,7 @@ module PDFStructure {
     "and": 1
   }
 
-  function toSectionData(item: MergedTextBlock, pageIdx: number): SectionData {
+  function toSectionData(item: MergedTextBlock): SectionData {
     var ms = sectionHeader.exec(item.str())
     if (ms == null || ms.length == 0) {
       return null
@@ -162,19 +176,13 @@ module PDFStructure {
     // check that all non-stop words are capitalzied
     var words = sectionTitle.split(" ")
     var lowercaseWords = words.filter(s => s.toLowerCase() == s)
-    var nonStopwordLowercaseWords = lowercaseWords.filter(w => sectionStopwords[w] == null)
+    var nonStopwordLowercaseWords =
+      lowercaseWords.filter(w => sectionStopwords[w] == null)
     if (nonStopwordLowercaseWords.length > 0) {
       return null
     }
     return {contentItem: item,
-            pageIdx: pageIdx,
             title: sectionTitle,
             sectionNumber: sectionNumber,
             subsectionNumber: subsectionNumber}
-  }
 }
-
-var url = "test-pdfs/map-reduce.pdf"
-PDFJS.getDocument(url)
-  .then(PDFStructure.getSectionData)
-  .then(value => {debugger;})

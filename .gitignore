@@ -5,3 +5,4 @@ tsconfig.json
 typings/**
 tsd.json
 *.tsc.js
+*.tsc.js.map
