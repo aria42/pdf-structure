@@ -7,13 +7,14 @@ module PDFStructure {
     // can be null
     subsectionNumber: number,
     // This is used for canvas zooming
-    // has the y-offset 
+    // has the y-offset
     contentItem: MergedTextBlock
   }
 
   interface StructureData {
     sections: SectionData[]
-    blocks: MergedTextBlock[]
+    // each outer is an array of blocks for each page
+    pageBlocks: MergedTextBlock[][]
     numPages: number
   }
 
@@ -41,6 +42,20 @@ module PDFStructure {
       return result
     }
 
+    xSpan(): [number, number] {
+      var minX = 100000
+      var maxX = 0.0
+      this.contentItems.forEach(item => {
+        if (item.transform[4] < minX) {
+          minX = item.transform[4]
+        }
+        if (item.transform[4] + item.width > maxX) {
+          maxX = item.transform[4] + item.width
+        }
+      })
+      return [minX, maxX]
+    }
+
     width(): number {
       return this.contentItems.map(item => item.width).reduce((x,y) => x+y)
     }
@@ -54,10 +69,10 @@ module PDFStructure {
   }
 
   export function getSectionData(pdf: PDFDocumentProxy): Promise<StructureData> {
-    var pagePromises: Promise<TextContent>[] = [];
+    var pagePromises: Promise<[number[], TextContent]>[] = [];
     for (var idx=0; idx < pdf.numPages; ++idx) {
       var textContentPromise = toPromise(pdf.getPage(idx + 1))
-        .then(x =>  x.getTextContent())
+      .then(page => toPromise(page.getTextContent()).then(content => [page.view, content]))
       pagePromises.push(textContentPromise)
     }
     return Promise.all(pagePromises)
@@ -90,13 +105,23 @@ module PDFStructure {
   }
 
 
-  function toStructuredData(pages: TextContent[]): StructureData {
+  function toStructuredData(pageBoundContentPairs: [number[], TextContent][]): StructureData {
     var sectonData: SectionData[] = []
-    var blocks: MergedTextBlock[] = []
-    for (var idx in pages) {
-      var pageContent = pages[idx]
+    var blocks: MergedTextBlock[][] = []
+    for (var idx in pageBoundContentPairs) {
+      var pageBounds = pageBoundContentPairs[idx][0]
+      var pageContent = pageBoundContentPairs[idx][1]
       var mergedBlocks = findMergedTextBlocks(pageContent.items)
-      mergedBlocks.forEach(x => blocks.push(x))
+      var midX = (pageBounds[2] - pageBounds[0]) / 2.0
+      mergedBlocks.forEach(block => {
+        var span = block.xSpan()
+        if (midX >= span[0] && midX <= span[1]) {
+          console.info("mid-spanning:", block.str())
+        } else {
+          // long runs are multiple columns
+        }
+      })
+      blocks.push(mergedBlocks)
       var pageSections = mergedBlocks.map(block => toSectionData(block, parseInt(idx)))
         .filter(x => x != null)
       pageSections.forEach(content => {
@@ -104,7 +129,9 @@ module PDFStructure {
         sectonData.push(content)
       })
     }
-    return {numPages: pages.length, sections: sectonData, blocks: blocks}
+    return {numPages: pageBoundContentPairs.length,
+            sections: sectonData,
+            pageBlocks: blocks}
   }
 
   var sectionHeader = /^([1-9]\d?)(?:[.](\d*))?\s+(.+)/
@@ -124,6 +151,10 @@ module PDFStructure {
     var sectionNumber = parseInt(ms[1])
     var subsectionNumber = ms[2] != null ? parseInt(ms[2]) : null
     var sectionTitle = ms[3]
+    // bogus section title length
+    if (sectionTitle.length < 4 || sectionTitle.length > 100) {
+      return null
+    }
     // typically no more than this many sections
     if (sectionNumber > 20) {
       return null
@@ -132,14 +163,18 @@ module PDFStructure {
     var words = sectionTitle.split(" ")
     var lowercaseWords = words.filter(s => s.toLowerCase() == s)
     var nonStopwordLowercaseWords = lowercaseWords.filter(w => sectionStopwords[w] == null)
+    if (nonStopwordLowercaseWords.length > 0) {
+      return null
+    }
     return {contentItem: item,
             pageIdx: pageIdx,
             title: sectionTitle,
-            sectionNumber: sectionNumber, subsectionNumber: subsectionNumber}
+            sectionNumber: sectionNumber,
+            subsectionNumber: subsectionNumber}
   }
 }
 
-var url = "test-pdfs/prototype-driven-sequence.pdf"
+var url = "test-pdfs/map-reduce.pdf"
 PDFJS.getDocument(url)
   .then(PDFStructure.getSectionData)
   .then(value => {debugger;})
