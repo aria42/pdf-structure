@@ -1,0 +1,7 @@
+# Emacs
+*~
+# Typescript
+tsconfig.json
+typings/**
+tsd.json
+*.tsc.js
