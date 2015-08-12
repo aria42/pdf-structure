@@ -18,9 +18,9 @@
           pdfURL: "test-pdfs/map-reduce.pdf",
           canvasElem: canvasElem
         }).then(function(viewer)  {
-          viewer.displayPage()
-          canvasElem  .onclick = function(event) {
-            viewer.advancePage()
+          viewer.rerenderPanel()
+          canvasElem.onclick = function(event) {
+            viewer.advancePanel()
           }
         })
       </script>

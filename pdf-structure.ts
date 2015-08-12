@@ -1,5 +1,12 @@
 module PDFStructure {
 
+  export interface PageData {
+    page: PDFPageProxy,
+    textContent: TextContent,
+    textBlocks: MergedTextBlock[]
+    panelLayout?: PanelLayout
+  }
+
   export interface SectionData {
     title: string,
     pageIdx?: number,
@@ -11,16 +18,149 @@ module PDFStructure {
     contentHeader: MergedTextBlock
   }
 
+  export enum PanelLayoutType {
+    // No column splits
+    SingleColumn,
+    // Whole page splits into two column
+    TwoColumn,
+    // Top of page has some full-width figure/table/etc.
+    // below some point two column
+    TopFullWidthTwoColumn
+  }
+
+  export enum PanelType {
+    FullPage,
+    LeftColumn,
+    RightColumn,
+    TopHeader,
+  }
+
+  export class Panel {
+    constructor(public type: PanelType, public bounds: number[]) {}
+
+    width() {
+      return this.bounds[2] - this.bounds[0]
+    }
+
+    height() {
+      return this.bounds[3] - this.bounds[1]
+    }
+  }
+
+  export interface PanelLayout {
+    type: PanelLayoutType,
+    panels: Panel[]
+  }
+
   export interface StructureData {
     sections: SectionData[]
     pages: PageData[],
     numPages: number
   }
 
-  export interface PageData {
-    page: PDFPageProxy,
-    textContent: TextContent,
-    textBlocks: MergedTextBlock[]
+  /*function bounds(blocks: MergedTextBlock[]) {
+    var minX = 100000
+    var maxX = 0
+    var minY = 100000
+    var maxY = 0
+    blocks.forEach(block => {
+      var xSpan = block.xSpan()
+      if (xSpan[0] < minX) {
+        minX = xSpan[0]
+      }
+      if (xSpan[1] > maxX) {
+        maxX = xSpan[1]
+      }
+      var ySpan = block.ySpan()
+      if (ySpan[0] < minY) {
+        minY = ySpan[0]
+      }
+      if (ySpan[1] > maxY) {
+        maxY = ySpan[1]
+      }
+    })
+    return [minX, maxX, minY, maxY]
+  }*/
+
+  function toPanelLayout(blocks: MergedTextBlock[], page: PDFPageProxy): PanelLayout {
+    var blocksByYOffset: {[k: string]: MergedTextBlock[]; } = {}
+      blocks.forEach(block => {
+      var blockKey = "" + block.yOffset()
+      if (blocksByYOffset[blockKey] == null) {
+        blocksByYOffset[blockKey] = []
+      }
+      blocksByYOffset[blockKey].push(block)
+    })
+    // top to bottom of page
+    var sortedHeights = Object.keys(blocksByYOffset).map(parseFloat)
+      .sort((a,b) => b-a)
+    var numMidStraddlingForward = new Array(sortedHeights.length)
+    var numBlocksForward = new Array(sortedHeights.length)
+    var numMidStraddlingSoFar = new Array(sortedHeights.length)
+    var numBlocksSoFar = new Array(sortedHeights.length)
+
+    var midX = (page.view[2] - page.view[0]) / 2.0
+    function isMidStraddler(block: MergedTextBlock) {
+      var span = block.xSpan()
+      return midX >= span[0] && midX <= span[1]
+    }
+
+    // forward pass
+    sortedHeights.forEach((height, idx) => {
+        var heightKey = "" + height
+        var rowBlocks = blocksByYOffset[heightKey]
+        numMidStraddlingSoFar[idx] = idx > 0 ? numMidStraddlingSoFar[idx-1] : 0
+        numBlocksSoFar[idx] = idx > 0 ? numBlocksSoFar[idx-1] : 0
+        var numStraddlers = rowBlocks.filter(isMidStraddler).length
+        numMidStraddlingSoFar[idx] += numStraddlers > 0 ? 1 : 0
+        numBlocksSoFar[idx] += 1// rowBlocks.length
+    })
+    var totalBlocks = numBlocksSoFar[sortedHeights.length-1]
+    var totalStraddlers = numMidStraddlingSoFar[sortedHeights.length-1]
+    var bestBreakScore = -1
+    var bestBreakIdx = -1
+    var breakScores = new Array(sortedHeights.length-1)
+    sortedHeights.forEach((height, idx) => {
+        var heightKey = "" + height
+        numMidStraddlingForward[idx] = totalStraddlers - numMidStraddlingSoFar[idx]
+        numBlocksForward[idx] = totalBlocks - numBlocksSoFar[idx]
+        var straddlerRatioSoFar = numMidStraddlingSoFar[idx] / numBlocksSoFar[idx]
+        var straddlerRatioForward = numMidStraddlingForward[idx] / numBlocksForward[idx]
+        var breakScore = straddlerRatioSoFar - straddlerRatioForward
+        var figureTableBlocks = blocksByYOffset[heightKey].filter(block =>
+          isMidStraddler(block) && block.str().match(/^(figure)|(table)/i) != null
+        )
+        if (figureTableBlocks.length > 0) {
+          breakScore = 10.0
+        }
+        if (breakScore > bestBreakScore) {
+          bestBreakScore = breakScore
+          bestBreakIdx = idx
+        }
+        breakScores[idx] = breakScore
+    })
+    var totalStraddlerRatio = totalStraddlers / totalBlocks
+    var panelLayout: PanelLayout
+    if (totalStraddlerRatio > 0.75) {
+      var panels = [new Panel(PanelType.FullPage, page.view)]
+      panelLayout = {type: PanelLayoutType.SingleColumn, panels: panels}
+    }
+    else if (bestBreakScore > 0.5) {
+      var bottomOfBreak = sortedHeights[bestBreakIdx]
+      var breakBlocks = blocksByYOffset["" + bottomOfBreak]
+      var maxHeight = Math.max.apply(null, breakBlocks.map(b => b.maxHeight()))
+      var topViewBounds = [0,0,page.view[2], bottomOfBreak - maxHeight]
+      var topPanel = new Panel(PanelType.TopHeader, topViewBounds)
+      var leftColumn = new Panel(PanelType.LeftColumn, [0, bottomOfBreak, midX, page.view[3]])
+      var rightColumn = new Panel(PanelType.RightColumn, [midX, bottomOfBreak, page.view[2], page.view[3]])
+      panelLayout = {type: PanelLayoutType.TopFullWidthTwoColumn, panels: [topPanel, leftColumn, rightColumn]}
+    } else {
+      var leftColumn = new Panel(PanelType.LeftColumn, [0, 0, midX, page.view[3]])
+      var rightColumn = new Panel(PanelType.RightColumn, [midX, 0, page.view[2], page.view[3]])
+      panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
+    }
+    console.info("panel type: " + panelLayout.type)
+    return panelLayout
   }
 
   // Adjcant TextContentItems at the same y-offset
@@ -45,6 +185,19 @@ module PDFStructure {
         }
       })
       return result
+    }
+
+    yOffset(): number {
+      return this.contentItems[0].transform[5]
+    }
+
+    maxHeight(): number {
+      return Math.max.apply(null, this.contentItems.map(x => x.height))
+    }
+
+    ySpan(): [number, number] {
+      var yStart = this.yOffset()
+      return [yStart -  this.maxHeight(), yStart]
     }
 
     xSpan(): [number, number] {
@@ -78,9 +231,12 @@ module PDFStructure {
   function toPageData(page: PDFPageProxy): Promise<PageData> {
     return toPromise(page.getTextContent())
       .then(content => {
+        var pageTextBlocks = findMergedTextBlocks(content.items)
+        var panelLayout = toPanelLayout(pageTextBlocks, page)
         return {page: page,
                 textContent: content,
-                textBlocks: findMergedTextBlocks(content.items)}
+                panelLayout: panelLayout,
+                textBlocks: pageTextBlocks}
       })
   }
 
@@ -126,15 +282,6 @@ module PDFStructure {
   function toStructuredData(pages: PageData[]): StructureData {
     var sectonData: SectionData[] = []
     pages.forEach((pd, idx) => {
-      var midX = (pd.page.view[2] - pd.page.view[0]) / 2.0
-      pd.textBlocks.forEach(block => {
-        var span = block.xSpan()
-        if (midX >= span[0] && midX <= span[1]) {
-          console.info("mid-spanning:", block.str())
-        } else {
-          // long runs are multiple columns
-        }
-      })
       var pageSections = pd.textBlocks.map(toSectionData)
           .filter(x => x != null)
       pageSections.forEach(content => {

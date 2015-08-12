@@ -6,41 +6,41 @@ module StructuredPDFViewer {
 
   export class Viewer {
     pageIdx: number
+    panelIdx: number
 
     constructor(public displayParams: DisplayParams,
                 private pdfData: PDFStructure.StructureData) {
       this.pageIdx = 0
+      this.panelIdx = 0
     }
 
-    advancePage() {
+    advancePanel(): boolean {
       this.pageIdx += 1
-      this.displayPage()
+      this.panelIdx = 0
+      this.rerenderPanel()
+      return true
     }
 
-    advancePanel() {
-
-    }
-
-    displayPage() {
-      var pd = this.pdfData.pages[this.pageIdx]
+    rerenderPanel() {
+      var pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
+      var panel: PDFStructure.Panel = pd.panelLayout.panels[this.panelIdx]
       var canvas = this.displayParams.canvasElem
       var scale = 1.0
-      var viewport = pd.page.getViewport(scale)
+      var viewport = pd.page.getViewport(scale);
+      canvas.width = window.devicePixelRatio * viewport.width
+      canvas.height = window.devicePixelRatio *viewport.height
+      var horizStrech = window.devicePixelRatio
+      var verticStrech = window.devicePixelRatio
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = viewport.height + 'px'
       var canvasCtx = canvas.getContext('2d')
+      canvasCtx.setTransform(horizStrech,0,0, verticStrech,0, 0)
       var renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
       }
-      // Handle Device Pixel Ratio (for retina screens)
-      // since Canvas is at bitmap level
-      canvas.height = 2 * window.devicePixelRatio * viewport.height
-      canvas.width = window.devicePixelRatio * viewport.width
-      canvas.style.width = canvas.width/ window.devicePixelRatio + 'px'
-      canvas.style.height = canvas.height/ window.devicePixelRatio + 'px'
-      //canvas.height /= 2
-      //canvas.height = 2
-      canvasCtx.setTransform(2*window.devicePixelRatio,0,0,2*window.devicePixelRatio,0, 0)
       pd.page.render(renderContext)
+      debugger
     }
   }
 
