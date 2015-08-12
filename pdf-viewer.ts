@@ -25,7 +25,8 @@ module StructuredPDFViewer {
       var pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
       var panel: PDFStructure.Panel = pd.panelLayout.panels[this.panelIdx]
       var canvas = this.displayParams.canvasElem
-      var scale = 1.0
+      var canvasParentWidth = window.getComputedStyle(canvas.parentElement).width.replace('px','')      
+      var scale = parseFloat(canvasParentWidth) / pd.page.getViewport(1.0).width;
       var viewport = pd.page.getViewport(scale);
       canvas.width = window.devicePixelRatio * viewport.width
       canvas.height = window.devicePixelRatio *viewport.height
