@@ -58,30 +58,6 @@ module PDFStructure {
     numPages: number
   }
 
-  /*function bounds(blocks: MergedTextBlock[]) {
-    var minX = 100000
-    var maxX = 0
-    var minY = 100000
-    var maxY = 0
-    blocks.forEach(block => {
-      var xSpan = block.xSpan()
-      if (xSpan[0] < minX) {
-        minX = xSpan[0]
-      }
-      if (xSpan[1] > maxX) {
-        maxX = xSpan[1]
-      }
-      var ySpan = block.ySpan()
-      if (ySpan[0] < minY) {
-        minY = ySpan[0]
-      }
-      if (ySpan[1] > maxY) {
-        maxY = ySpan[1]
-      }
-    })
-    return [minX, maxX, minY, maxY]
-  }*/
-
   function toPanelLayout(blocks: MergedTextBlock[], page: PDFPageProxy): PanelLayout {
     var blocksByYOffset: {[k: string]: MergedTextBlock[]; } = {}
       blocks.forEach(block => {
