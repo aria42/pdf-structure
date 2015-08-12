@@ -1,25 +1,30 @@
 module PDFStructure {
 
-  interface SectionData {
+  export interface SectionData {
     title: string,
-    pageIdx: number,
+    pageIdx?: number,
     sectionNumber: number,
     // can be null
     subsectionNumber: number,
     // This is used for canvas zooming
     // has the y-offset
-    contentItem: MergedTextBlock
+    contentHeader: MergedTextBlock
   }
 
-  interface StructureData {
+  export interface StructureData {
     sections: SectionData[]
-    // each outer is an array of blocks for each page
-    pageBlocks: MergedTextBlock[][]
+    pages: PageData[],
     numPages: number
   }
 
+  export interface PageData {
+    page: PDFPageProxy,
+    textContent: TextContent,
+    textBlocks: MergedTextBlock[]
+  }
+
   // Adjcant TextContentItems at the same y-offset
-  class MergedTextBlock {
+  export class MergedTextBlock {
     constructor(public contentItems: TextContentItem[]) { }
 
     /**
@@ -38,7 +43,7 @@ module PDFStructure {
             result += " "
           }
         }
-      });
+      })
       return result
     }
 
@@ -46,11 +51,13 @@ module PDFStructure {
       var minX = 100000
       var maxX = 0.0
       this.contentItems.forEach(item => {
-        if (item.transform[4] < minX) {
-          minX = item.transform[4]
+        var startX = item.transform[4]
+        var stopX = startX + item.width
+        if (startX < minX) {
+          minX = startX
         }
-        if (item.transform[4] + item.width > maxX) {
-          maxX = item.transform[4] + item.width
+        if (stopX > maxX) {
+          maxX = stopX
         }
       })
       return [minX, maxX]
@@ -65,29 +72,30 @@ module PDFStructure {
    * Convert PDF.js PDFPromise to a normal ES6 Promise
    */
   function toPromise<T>(pdfPromise: PDFPromise<T>): Promise<T> {
-    return new Promise<T>((success, fail) => pdfPromise.then(success, fail));
-  }
-
-  interface PageData {
-    viewBounds: number[],
-    textContent: TextContent
+    return new Promise<T>((success, fail) => pdfPromise.then(success, fail))
   }
 
   function toPageData(page: PDFPageProxy): Promise<PageData> {
     return toPromise(page.getTextContent())
       .then(content => {
-        return {viewBounds: page.view, textContent: content}
+        return {page: page,
+                textContent: content,
+                textBlocks: findMergedTextBlocks(content.items)}
       })
   }
 
-  export function getSectionData(pdf: PDFDocumentProxy): Promise<StructureData> {
-    var pagePromises: Promise<PageData>[] = [];
+  export function getStructuredData(pdf: PDFDocumentProxy): Promise<StructureData> {
+    var pagePromises: Promise<PageData>[] = []
     for (var idx=0; idx < pdf.numPages; ++idx) {
       var page = pdf.getPage(idx + 1)
       pagePromises.push(toPromise(page).then(toPageData))
     }
     return Promise.all(pagePromises)
       .then(toStructuredData,(e) => { console.error("Error reading PDF:", e) })
+  }
+
+  export function fetch(url: string): Promise<StructureData> {
+    return toPromise(PDFJS.getDocument(url)).then(getStructuredData)
   }
 
   function findMergedTextBlocks(contentItems: TextContentItem[]): MergedTextBlock[] {
@@ -115,15 +123,11 @@ module PDFStructure {
   }
 
 
-  function toStructuredData(pageBoundContentPairs: PageData[]): StructureData {
+  function toStructuredData(pages: PageData[]): StructureData {
     var sectonData: SectionData[] = []
-    var blocks: MergedTextBlock[][] = []
-    for (var idx in pageBoundContentPairs) {
-      idx = parseInt(idx)
-      var pd: PageData = pageBoundContentPairs[idx]
-      var mergedBlocks = findMergedTextBlocks(pd.textContent.items)
-      var midX = (pd.viewBounds[2] - pd.viewBounds[0]) / 2.0
-      mergedBlocks.forEach(block => {
+    pages.forEach((pd, idx) => {
+      var midX = (pd.page.view[2] - pd.page.view[0]) / 2.0
+      pd.textBlocks.forEach(block => {
         var span = block.xSpan()
         if (midX >= span[0] && midX <= span[1]) {
           console.info("mid-spanning:", block.str())
@@ -131,21 +135,16 @@ module PDFStructure {
           // long runs are multiple columns
         }
       })
-      blocks.push(mergedBlocks)
-      var pageSections = mergedBlocks.map(block => {
-          var sectionData = toSectionData(block)
-          sectonData.pageIdx = idx
-          return sectionData
-        })
-        .filter(x => x != null)
+      var pageSections = pd.textBlocks.map(toSectionData)
+          .filter(x => x != null)
       pageSections.forEach(content => {
-        console.info("SECTION: " + content.contentItem.str())
+        console.info("SECTION: " + content.contentHeader.str(), content.contentHeader)
         sectonData.push(content)
       })
-    }
-    return {numPages: pageBoundContentPairs.length,
+    })
+    return {numPages: pages.length,
             sections: sectonData,
-            pageBlocks: blocks}
+            pages: pages }
   }
 
   var sectionHeader = /^([1-9]\d?)(?:[.](\d*))?\s+(.+)/
@@ -181,8 +180,9 @@ module PDFStructure {
     if (nonStopwordLowercaseWords.length > 0) {
       return null
     }
-    return {contentItem: item,
+    return {contentHeader: item,
             title: sectionTitle,
             sectionNumber: sectionNumber,
             subsectionNumber: subsectionNumber}
+  }
 }
