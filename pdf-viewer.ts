@@ -39,23 +39,16 @@ module StructuredPDFViewer {
       canvas.style.height = canvas.height/ window.devicePixelRatio + 'px'
       //canvas.height /= 2
       //canvas.height = 2
-      canvasCtx.setTransform(2*window.devicePixelRatio,0,0,2*window.devicePixelRatio,0, 0)      
+      canvasCtx.setTransform(2*window.devicePixelRatio,0,0,2*window.devicePixelRatio,0, 0)
       pd.page.render(renderContext)
     }
   }
 
-
-
-  export function display(params: DisplayParams) {
-    PDFStructure.fetch(params.pdfURL)
-      .then(structuredData => {
+  export function display(params: DisplayParams): Promise<Viewer> {
+    return PDFStructure.fetch(params.pdfURL).then(structuredData => {
         var page: PDFPageProxy = structuredData.pages[0].page
         var canvas = params.canvasElem
-        var viewer = new Viewer(params, structuredData)
-        viewer.displayPage()
-        canvas.onclick = e => {
-          viewer.advancePage()
-        }
+        return new Viewer(params, structuredData)
       })
   }
 }

@@ -13,9 +13,15 @@
       <script type="text/javascript">
         // Let PDFJS use a worker
         PDFJS.workerSrc = 'https://mozilla.github.io/pdf.js/build/pdf.worker.js'
+        var canvasElem = document.getElementById('pdfCanvas');
         StructuredPDFViewer.display({
           pdfURL: "test-pdfs/map-reduce.pdf",
-          canvasElem: document.getElementById('pdfCanvas')
+          canvasElem: canvasElem
+        }).then(function(viewer)  {
+          viewer.displayPage()
+          canvasElem  .onclick = function(event) {
+            viewer.advancePage()
+          }
         })
       </script>
   </body>
