@@ -2,6 +2,7 @@ module StructuredPDFViewer {
   export interface DisplayParams {
     canvasElem: HTMLCanvasElement
     pdfURL: string
+    sectionJumpVerticalPad: number
   }
 
   export enum DisplayMode {
@@ -24,7 +25,9 @@ module StructuredPDFViewer {
     }
 
     jumpToPage(pageNum: number) {
-      
+      this.pageIdx = pageNum
+      this.panelIdx = 0
+      this.rerenderPanel()
     }
 
     jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
@@ -39,7 +42,8 @@ module StructuredPDFViewer {
       var panelY = matchPanel.bounds[1]
       var sectionY = sectionHeader.yOffset()
       var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
-      this.displayParams.canvasElem.parentElement.scrollTop = dy - 5
+      var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 5)
+      this.displayParams.canvasElem.parentElement.scrollTop = scrollTop
       return renderPromise
     }
 

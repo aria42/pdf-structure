@@ -112,11 +112,20 @@ module PDFStructure {
         var straddlerRatioSoFar = numMidStraddlingSoFar[idx] / numBlocksSoFar[idx]
         var straddlerRatioForward = numMidStraddlingForward[idx] / numBlocksForward[idx]
         var breakScore = straddlerRatioSoFar - straddlerRatioForward
+        var pageFraction = height / page.getViewport(1.0).height
+        if (pageFraction < 0.1) {
+          breakScores[idx] = 0.0
+          return
+        }
         var figureTableBlocks = blocksByYOffset[heightKey].filter(block =>
           isMidStraddler(block) && block.str().match(/^(figure)|(table)/i) != null
         )
         if (figureTableBlocks.length > 0) {
           breakScore = 10.0
+        }
+        var straddleBlocks = blocksByYOffset[heightKey].filter(isMidStraddler)
+        if (straddleBlocks.length == 0) {
+          breakScore = -1
         }
         if (breakScore > bestBreakScore) {
           bestBreakScore = breakScore
@@ -126,11 +135,13 @@ module PDFStructure {
     })
     var totalStraddlerRatio = totalStraddlers / totalBlocks
     var panelLayout: PanelLayout
+    var bestTopFraction = (bestBreakIdx + 1) / sortedHeights.length
+
     if (totalStraddlerRatio > 0.75) {
       var panels = [new Panel(PanelType.FullPage, page.view)]
       panelLayout = {type: PanelLayoutType.SingleColumn, panels: panels}
     }
-    else if (bestBreakScore > 0.5) {
+    else if (bestBreakScore > 0.2) {
       var bottomOfBreak = sortedHeights[bestBreakIdx]
       var breakBlocks = blocksByYOffset["" + bottomOfBreak]
       var maxHeight = Math.max.apply(null, breakBlocks.map(b => b.maxHeight()))
@@ -144,7 +155,12 @@ module PDFStructure {
       var rightColumn = new Panel(PanelType.RightColumn, [midX, 0, page.view[2], page.view[3]])
       panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
     }
-    console.info("panel type: " + panelLayout.type)
+    //console.info("page num: " + page.pageNumber)
+    //console.info("panel type: " + panelLayout.type)
+    //if (breakBlocks != null) {
+    //    console.info("break block: " + breakBlocks.map(b => b.str()).join(" "))
+    //}
+    //debugger
     return panelLayout
   }
 
@@ -279,7 +295,7 @@ module PDFStructure {
       var pageSections = pd.textBlocks.map(toSectionData)
           .filter(x => x != null)
       pageSections.forEach(content => {
-        console.info("SECTION: " + content.contentHeader.str(), content.contentHeader)
+        //console.info("SECTION: " + content.contentHeader.str(), content.contentHeader)
         content.pageIdx = idx
         sectonData.push(content)
       })
