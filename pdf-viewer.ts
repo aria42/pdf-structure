@@ -4,9 +4,15 @@ module StructuredPDFViewer {
     pdfURL: string
   }
 
+  export enum DisplayMode {
+      PANEL,
+      PAGE
+  }
+
   export class Viewer {
     pageIdx: number
     panelIdx: number
+    displayMode: DisplayMode
 
     constructor(public displayParams: DisplayParams,
                 public pdfData: PDFStructure.StructureData) {

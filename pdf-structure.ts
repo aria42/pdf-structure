@@ -36,6 +36,7 @@ module PDFStructure {
   }
 
   export class Panel {
+    // [x0,y0, x1, y1]  <- canvas coordinates
     constructor(public type: PanelType, public bounds: number[]) {}
 
     width() {
