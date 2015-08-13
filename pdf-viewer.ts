@@ -70,13 +70,12 @@ module StructuredPDFViewer {
       var verticStrech = dpiScale
       var panelWidthInCanvas = panel.width() * viewportScale * dpiScale
       var panelHorizSkew = canvas.width / panelWidthInCanvas
-      var panelVerticalSkew = panelHorizSkew //canvas.height/canvas.width * panelHorizSkew
-      var dx = 0.0 //-horizStrech * viewportScale * panel.bounds[0]//(canvas.width - panel.width() * viewportScale * dpiScale)/2.0
-      //debugger
-      var dy = -verticStrech * viewportScale * panel.bounds[1]
-      canvasScale(viewport.width * panelHorizSkew, viewport.height * panelHorizSkew + dy)
-      //debugger
+      var panelVerticalSkew = panelHorizSkew
+      var dx = - panelHorizSkew * horizStrech * viewportScale * panel.bounds[0]
+      var dy = - panelVerticalSkew * verticStrech * viewportScale * panel.bounds[1]
+      canvasScale(viewport.width * panelHorizSkew, viewport.height * panelVerticalSkew + dy / dpiScale)
       canvasCtx.setTransform(horizStrech * panelHorizSkew, 0, 0, verticStrech * panelVerticalSkew, dx, dy)
+      canvas.parentElement.scrollTop = 0
       var renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
