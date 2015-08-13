@@ -30,6 +30,12 @@ module StructuredPDFViewer {
       this.rerenderPanel()
     }
 
+    jumpToPanel(pageIdx: number, panelIdx: number) {
+      this.pageIdx = pageIdx
+      this.panelIdx = panelIdx
+      this.rerenderPanel()
+    }
+
     jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
       this.pageIdx = section.pageIdx
       var pd = this.pdfData.pages[this.pageIdx]
@@ -101,15 +107,23 @@ module StructuredPDFViewer {
       var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1]
       canvasScale(viewport.width * this.panelSkew, viewport.height * this.panelSkew + dy / dpiScale)
       canvasCtx.setTransform(horizStrech * this.panelSkew, 0, 0, verticStrech * this.panelSkew, dx, dy)
-      if (panel.type == PDFStructure.PanelType.TopHeader) {        
-        canvasCtx.fillRect(20,20,150,100)
-      }
+
       canvas.parentElement.scrollTop = 0
       var renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
       }
-      return PDFStructure.toPromise(pd.page.render(renderContext))
+      var renderPromise = PDFStructure.toPromise(pd.page.render(renderContext))
+      renderPromise.then(ignore => {
+        if (false && panel.type == PDFStructure.PanelType.TopHeader) {
+          canvasCtx.globalAlpha = 0.1
+          var panelHeight = this.panelSkew * verticStrech * this.viewportScale * panel.height()
+          canvasCtx.fillStyle="black"
+          canvasCtx.fillRect(0,0,canvas.width,canvas.height-panelHeight)
+          //debugger
+        }
+      })
+      return renderPromise
     }
   }
 
