@@ -9,7 +9,7 @@ module StructuredPDFViewer {
     panelIdx: number
 
     constructor(public displayParams: DisplayParams,
-                private pdfData: PDFStructure.StructureData) {
+                public pdfData: PDFStructure.StructureData) {
       this.pageIdx = 0
       this.panelIdx = 0
     }
