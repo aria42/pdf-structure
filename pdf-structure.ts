@@ -134,25 +134,36 @@ module PDFStructure {
         breakScores[idx] = breakScore
     })
     var totalStraddlerRatio = totalStraddlers / totalBlocks
-    var panelLayout: PanelLayout
     var bestTopFraction = (bestBreakIdx + 1) / sortedHeights.length
 
     if (totalStraddlerRatio > 0.75) {
       var panels = [new Panel(PanelType.FullPage, page.view)]
-      panelLayout = {type: PanelLayoutType.SingleColumn, panels: panels}
+      return {type: PanelLayoutType.SingleColumn, panels: panels}
     }
-    else if (bestBreakScore > 0.2) {
+    var panelLayout: PanelLayout
+    var bottomBlocks = bestBreakIdx < 0 ? blocks : blocks.slice(bestBreakIdx+1)
+    var leftBottomBlocks = bottomBlocks.filter(b => b.xSpan()[1] <= midX)
+    var rightBottomBlocks = bottomBlocks.filter(b => b.xSpan()[0] > midX)
+    function xSpanForBlocks(bs: MergedTextBlock[]) {
+      var minX = Math.min.apply(null, bs.map(b => b.xSpan()[0]))
+      var maxX = Math.max.apply(null, bs.map(b => b.xSpan()[1]))
+      return [minX, maxX]
+    }
+    var leftXSpan = xSpanForBlocks(leftBottomBlocks)
+    var rightXSpan = xSpanForBlocks(rightBottomBlocks)
+    //debugger
+    if (bestBreakScore > 0.2) {
       var bottomOfBreak = sortedHeights[bestBreakIdx]
       var breakBlocks = blocksByYOffset["" + bottomOfBreak]
       var maxHeight = Math.max.apply(null, breakBlocks.map(b => b.maxHeight()))
       var topViewBounds = [0,0,page.view[2], bottomOfBreak - maxHeight]
       var topPanel = new Panel(PanelType.TopHeader, topViewBounds)
-      var leftColumn = new Panel(PanelType.LeftColumn, [0, bottomOfBreak, midX, page.view[3]])
-      var rightColumn = new Panel(PanelType.RightColumn, [midX, bottomOfBreak, page.view[2], page.view[3]])
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], bottomOfBreak, leftXSpan[1], page.view[3]])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], bottomOfBreak, rightXSpan[1], page.view[3]])
       panelLayout = {type: PanelLayoutType.TopFullWidthTwoColumn, panels: [topPanel, leftColumn, rightColumn]}
     } else {
-      var leftColumn = new Panel(PanelType.LeftColumn, [0, 0, midX, page.view[3]])
-      var rightColumn = new Panel(PanelType.RightColumn, [midX, 0, page.view[2], page.view[3]])
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], page.view[3]])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], 0, rightXSpan[1], page.view[3]])
       panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
     }
     //console.info("page num: " + page.pageNumber)
