@@ -20,10 +20,6 @@ module StructuredPDFViewer {
       this.panelIdx = 0
     }
 
-    advancePage() {
-
-    }
-
     advancePanel(): boolean {
       var numPanels = this.pdfData.pages[this.pageIdx].panelLayout.panels.length
       if (this.panelIdx + 1 < numPanels) {
@@ -36,15 +32,6 @@ module StructuredPDFViewer {
       }
       this.rerenderPanel()
       return true
-    }
-
-    renderPage() {
-      var pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
-      var canvas = this.displayParams.canvasElem
-      var canvasParentWidth = window.getComputedStyle(canvas.parentElement).width.replace('px','')
-      var origViewport = pd.page.getViewport(1.0)
-      var scale = parseFloat(canvasParentWidth) / origViewport.width
-      var viewport = pd.page.getViewport(scale)
     }
 
     rerenderPanel() {
