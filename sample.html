@@ -5,7 +5,10 @@
     <title>Sample PDF Document Structure</title>
   </head>
   <body>
-      <canvas id="pdfCanvas" style="display:block;">
+      <div id="switcher">
+        <select  name="section"></select>
+      </div>
+      <canvas id="pdfCanvas" style="display:block;">      
       <script src="http://mozilla.github.io/pdf.js/build/pdf.js" charset="utf-8"></script>
       <script src="structured-pdf.tsc.js" charset="utf-8"></script>
       <script type="text/javascript">
@@ -16,6 +19,24 @@
           pdfURL: "test-pdfs/openie.pdf",
           canvasElem: canvasElem
         }).then(function(viewer)  {
+          var sections = viewer.pdfData.sections;
+          var select = document.getElementsByTagName('select')[0]
+          sections.forEach(function(section, idx) {
+            var option = document.createElement('option');
+            var optionTitle = "" + section.sectionNumber;
+            if (section.subsectionNumber != null) {
+              optionTitle = " " + optionTitle + "." + section.subsectionNumber;
+            }
+            optionTitle += " " + section.title;
+            option.innerText = optionTitle;
+            option.setAttribute('value', idx);
+            select.appendChild(option);
+          });
+          select.onchange = function(e) {
+            if (this.selectedIndex != null) {
+              viewer.jumpToSection(sections[this.selectedIndex])
+            }
+          }
           viewer.rerenderPanel()
           canvasElem.onclick = function(event) {
             viewer.advancePanel()

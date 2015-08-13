@@ -46,6 +46,14 @@ module PDFStructure {
     height() {
       return this.bounds[3] - this.bounds[1]
     }
+
+    contains(block: MergedTextBlock): boolean {
+      var blockBounds = block.bounds()
+      return this.bounds[0] <= blockBounds[0] &&
+             this.bounds[1] <= blockBounds[1] &&
+             this.bounds[2] >= blockBounds[2] &&
+             this.bounds[3] >= blockBounds[3]
+    }
   }
 
   export interface PanelLayout {
@@ -168,6 +176,15 @@ module PDFStructure {
       return this.page.getViewport(1.0).height - this.contentItems[0].transform[5]
     }
 
+    bounds(): [number, number,number, number] {
+      var xspan = this.xSpan()
+      var x0 = xspan[0]
+      var x1 = xspan[1]
+      var y0 = this.yOffset()
+      var y1 = y0 + this.maxHeight()
+      return [x0, y0, x1, y1]
+    }
+
     maxHeight(): number {
       return Math.max.apply(null, this.contentItems.map(x => x.height))
     }
@@ -201,7 +218,7 @@ module PDFStructure {
   /**
    * Convert PDF.js PDFPromise to a normal ES6 Promise
    */
-  function toPromise<T>(pdfPromise: PDFPromise<T>): Promise<T> {
+  export function toPromise<T>(pdfPromise: PDFPromise<T>): Promise<T> {
     return new Promise<T>((success, fail) => pdfPromise.then(success, fail))
   }
 
@@ -263,6 +280,7 @@ module PDFStructure {
           .filter(x => x != null)
       pageSections.forEach(content => {
         console.info("SECTION: " + content.contentHeader.str(), content.contentHeader)
+        content.pageIdx = idx
         sectonData.push(content)
       })
     })

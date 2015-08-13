@@ -13,12 +13,34 @@ module StructuredPDFViewer {
     pageIdx: number
     panelIdx: number
     displayMode: DisplayMode
+    panelSkew: number
+    viewportScale: number
 
     constructor(public displayParams: DisplayParams,
                 public pdfData: PDFStructure.StructureData) {
       this.pageIdx = 0
       this.panelIdx = 0
       this.displayMode = DisplayMode.PANEL
+    }
+
+    jumpToPage(pageNum: number) {
+      
+    }
+
+    jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
+      this.pageIdx = section.pageIdx
+      var pd = this.pdfData.pages[this.pageIdx]
+      var sectionHeader = section.contentHeader
+      var matchingPanels = pd.panelLayout.panels.filter(panel => panel.contains(sectionHeader))
+      var matchPanel = matchingPanels[0]
+      this.panelIdx = pd.panelLayout.panels.indexOf(matchPanel)
+      var renderPromise = this.rerenderPanel()
+      // scroll on panel render
+      var panelY = matchPanel.bounds[1]
+      var sectionY = sectionHeader.yOffset()
+      var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
+      this.displayParams.canvasElem.parentElement.scrollTop = dy - 5
+      return renderPromise
     }
 
     advancePanel(): boolean {
@@ -41,8 +63,8 @@ module StructuredPDFViewer {
       var canvas = this.displayParams.canvasElem
       var canvasParentWidth = window.getComputedStyle(canvas.parentElement).width.replace('px','')
       var origViewport = pd.page.getViewport(1.0)
-      var viewportScale = parseFloat(canvasParentWidth) / origViewport.width
-      var viewport = pd.page.getViewport(viewportScale)
+      this.viewportScale = parseFloat(canvasParentWidth) / origViewport.width
+      var viewport = pd.page.getViewport(this.viewportScale)
       var dpiScale = window.devicePixelRatio
       function canvasScale(w: number, h: number) {
         // Pixel width/height
@@ -56,19 +78,18 @@ module StructuredPDFViewer {
       var canvasCtx = canvas.getContext('2d')
       var horizStrech = dpiScale
       var verticStrech = dpiScale
-      var panelWidthInCanvas = panel.width() * viewportScale * dpiScale
-      var panelHorizSkew = canvas.width / panelWidthInCanvas
-      var panelVerticalSkew = panelHorizSkew
-      var dx = - panelHorizSkew * horizStrech * viewportScale * panel.bounds[0]
-      var dy = - panelVerticalSkew * verticStrech * viewportScale * panel.bounds[1]
-      canvasScale(viewport.width * panelHorizSkew, viewport.height * panelVerticalSkew + dy / dpiScale)
-      canvasCtx.setTransform(horizStrech * panelHorizSkew, 0, 0, verticStrech * panelVerticalSkew, dx, dy)
+      var panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
+      this.panelSkew = canvas.width / panelWidthInCanvas
+      var dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0]
+      var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1]
+      canvasScale(viewport.width * this.panelSkew, viewport.height * this.panelSkew + dy / dpiScale)
+      canvasCtx.setTransform(horizStrech * this.panelSkew, 0, 0, verticStrech * this.panelSkew, dx, dy)
       canvas.parentElement.scrollTop = 0
       var renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
       }
-      pd.page.render(renderContext)
+      return PDFStructure.toPromise(pd.page.render(renderContext))
     }
   }
 
