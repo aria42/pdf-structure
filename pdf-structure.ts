@@ -153,10 +153,18 @@ module PDFStructure {
     var rightXSpan = xSpanForBlocks(rightBottomBlocks)
     //debugger
     if (bestBreakScore > 0.2) {
+      // HACK(aria42) Top of 1st page is generally title
+      var topXSpan: [number, number]
+      if (page.pageNumber == 1) {
+        var topBlocks = blocks.slice(0, bestBreakIdx+1)
+        topXSpan = xSpanForBlocks(topBlocks)
+      } else {
+        topXSpan = [0, page.view[2]]
+      }
       var bottomOfBreak = sortedHeights[bestBreakIdx]
       var breakBlocks = blocksByYOffset["" + bottomOfBreak]
       var maxHeight = Math.max.apply(null, breakBlocks.map(b => b.maxHeight()))
-      var topViewBounds = [0,0,page.view[2], bottomOfBreak - maxHeight]
+      var topViewBounds = [topXSpan[0],0,topXSpan[1], bottomOfBreak - maxHeight]
       var topPanel = new Panel(PanelType.TopHeader, topViewBounds)
       var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], bottomOfBreak, leftXSpan[1], page.view[3]])
       var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], bottomOfBreak, rightXSpan[1], page.view[3]])

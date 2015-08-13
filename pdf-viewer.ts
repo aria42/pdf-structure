@@ -2,7 +2,7 @@ module StructuredPDFViewer {
   export interface DisplayParams {
     canvasElem: HTMLCanvasElement
     pdfURL: string
-    sectionJumpVerticalPad: number  
+    sectionJumpVerticalPad: number
   }
 
   export enum DisplayMode {
@@ -101,6 +101,9 @@ module StructuredPDFViewer {
       var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1]
       canvasScale(viewport.width * this.panelSkew, viewport.height * this.panelSkew + dy / dpiScale)
       canvasCtx.setTransform(horizStrech * this.panelSkew, 0, 0, verticStrech * this.panelSkew, dx, dy)
+      if (panel.type == PDFStructure.PanelType.TopHeader) {        
+        canvasCtx.fillRect(20,20,150,100)
+      }
       canvas.parentElement.scrollTop = 0
       var renderContext = {
         canvasContext: canvasCtx,
