@@ -47,13 +47,26 @@ module StructuredPDFViewer {
       return renderPromise
     }
 
-    advancePanel(): boolean {
+    nextPanel(): boolean {
       var numPanels = this.pdfData.pages[this.pageIdx].panelLayout.panels.length
       if (this.panelIdx + 1 < numPanels) {
         this.panelIdx += 1
       } else if (this.pageIdx + 1 < this.pdfData.numPages) {
         this.pageIdx += 1
         this.panelIdx = 0
+      } else {
+        return false
+      }
+      this.rerenderPanel()
+      return true
+    }
+    previousPanel(): boolean {
+      var numPanels = this.pdfData.pages[this.pageIdx].panelLayout.panels.length
+      if (this.panelIdx > 0) {
+        this.panelIdx -= 1
+      } else if (this.pageIdx > 0) {
+        this.pageIdx -= 1
+        this.panelIdx = this.pdfData.pages[this.pageIdx].panelLayout.panels.length - 1
       } else {
         return false
       }
