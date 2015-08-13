@@ -48,7 +48,7 @@ module StructuredPDFViewer {
       var panelY = matchPanel.bounds[1]
       var sectionY = sectionHeader.yOffset()
       var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
-      var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 5)
+      var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 40)
       this.displayParams.canvasElem.parentElement.scrollTop = scrollTop
       return renderPromise
     }
@@ -84,11 +84,13 @@ module StructuredPDFViewer {
       var pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
       var panel: PDFStructure.Panel = pd.panelLayout.panels[this.panelIdx]
       var canvas = this.displayParams.canvasElem
-      var canvasParentWidth = window.getComputedStyle(canvas.parentElement).width.replace('px','')
-      var origViewport = pd.page.getViewport(1.0)
-      this.viewportScale = parseFloat(canvasParentWidth) / origViewport.width
-      var viewport = pd.page.getViewport(this.viewportScale)
+      var parentStyles = window.getComputedStyle(canvas.parentElement)
       var dpiScale = window.devicePixelRatio
+      var horizontalPadding = parseFloat(parentStyles.paddingLeft) * dpiScale + parseFloat(parentStyles.paddingRight) * dpiScale
+      var canvasParentWidth = canvas.parentElement.offsetWidth - horizontalPadding;
+      var origViewport = pd.page.getViewport(1.0)
+      this.viewportScale = canvasParentWidth / origViewport.width
+      var viewport = pd.page.getViewport(this.viewportScale)
       function canvasScale(w: number, h: number) {
         // Pixel width/height
         canvas.width = dpiScale * w
@@ -97,18 +99,17 @@ module StructuredPDFViewer {
         canvas.style.width = w + 'px'
         canvas.style.height = h + 'px'
       }
-      canvasScale(viewport.width, viewport.height)
+      canvasScale(canvasParentWidth, viewport.height * this.viewportScale);
       var canvasCtx = canvas.getContext('2d')
       var horizStrech = dpiScale
       var verticStrech = dpiScale
       var panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
       this.panelSkew = canvas.width / panelWidthInCanvas
-      var dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0]
-      var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1]
+      var dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0] + horizontalPadding / 2;
+      var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1];
+
       canvasScale(viewport.width * this.panelSkew, viewport.height * this.panelSkew + dy / dpiScale)
       canvasCtx.setTransform(horizStrech * this.panelSkew, 0, 0, verticStrech * this.panelSkew, dx, dy)
-
-      canvas.parentElement.scrollTop = 0
       var renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
