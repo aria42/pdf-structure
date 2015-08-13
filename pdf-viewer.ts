@@ -18,6 +18,7 @@ module StructuredPDFViewer {
                 public pdfData: PDFStructure.StructureData) {
       this.pageIdx = 0
       this.panelIdx = 0
+      this.displayMode = DisplayMode.PANEL
     }
 
     advancePanel(): boolean {
