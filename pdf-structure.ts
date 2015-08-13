@@ -68,9 +68,9 @@ module PDFStructure {
       }
       blocksByYOffset[blockKey].push(block)
     })
-    // top to bottom of page
+    // top to bottom of page - ascending
     var sortedHeights = Object.keys(blocksByYOffset).map(parseFloat)
-      .sort((a,b) => b-a)
+      .sort((a,b) => a-b)
     var numMidStraddlingForward = new Array(sortedHeights.length)
     var numBlocksForward = new Array(sortedHeights.length)
     var numMidStraddlingSoFar = new Array(sortedHeights.length)
@@ -142,7 +142,7 @@ module PDFStructure {
 
   // Adjcant TextContentItems at the same y-offset
   export class MergedTextBlock {
-    constructor(public contentItems: TextContentItem[]) { }
+    constructor(public contentItems: TextContentItem[], public page: PDFPageProxy) { }
 
     /**
      * Content of merged text block
@@ -165,7 +165,7 @@ module PDFStructure {
     }
 
     yOffset(): number {
-      return this.contentItems[0].transform[5]
+      return this.page.getViewport(1.0).height - this.contentItems[0].transform[5]
     }
 
     maxHeight(): number {
@@ -208,7 +208,7 @@ module PDFStructure {
   function toPageData(page: PDFPageProxy): Promise<PageData> {
     return toPromise(page.getTextContent())
       .then(content => {
-        var pageTextBlocks = findMergedTextBlocks(content.items)
+        var pageTextBlocks = findMergedTextBlocks(content.items, page)
         var panelLayout = toPanelLayout(pageTextBlocks, page)
         return {page: page,
                 textContent: content,
@@ -231,7 +231,7 @@ module PDFStructure {
     return toPromise(PDFJS.getDocument(url)).then(getStructuredData)
   }
 
-  function findMergedTextBlocks(contentItems: TextContentItem[]): MergedTextBlock[] {
+  function findMergedTextBlocks(contentItems: TextContentItem[], page: PDFPageProxy): MergedTextBlock[] {
     var allBlocks: MergedTextBlock[] = []
     if (contentItems.length == 0) {
       return allBlocks
@@ -245,12 +245,12 @@ module PDFStructure {
       if (curItem.transform[5] == curYOffset) {
         blockItemsInProgress.push(curItem)
       } else {
-        allBlocks.push(new MergedTextBlock(blockItemsInProgress.slice(0)))
+        allBlocks.push(new MergedTextBlock(blockItemsInProgress.slice(0), page))
         blockItemsInProgress = [curItem]
       }
     }
     if (blockItemsInProgress.length > 0) {
-      allBlocks.push(new MergedTextBlock(blockItemsInProgress.slice(0)))
+      allBlocks.push(new MergedTextBlock(blockItemsInProgress.slice(0), page))
     }
     return allBlocks
   }
