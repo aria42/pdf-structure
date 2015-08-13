@@ -1,8 +1,8 @@
 # How to use
 
 ```bash
-npm install typescript
-npm install tsd
+npm install -g typescript
+npm install -g tsd
 tsd reinstall  # puts type definitions
 tsc -w # watch compiler
 python -m SimpleHTTPServer # launch http server
