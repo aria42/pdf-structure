@@ -96,7 +96,13 @@ module PDFStructure {
         var rowBlocks = blocksByYOffset[heightKey]
         numMidStraddlingSoFar[idx] = idx > 0 ? numMidStraddlingSoFar[idx-1] : 0
         numBlocksSoFar[idx] = idx > 0 ? numBlocksSoFar[idx-1] : 0
+        // exclude short
+        if (rowBlocks.map(b => b.str()).join("").trim().length < 3) {
+        //  debugger
+          return;
+        }
         var numStraddlers = rowBlocks.filter(isMidStraddler).length
+        // exclude short blocks
         numMidStraddlingSoFar[idx] += numStraddlers > 0 ? 1 : 0
         numBlocksSoFar[idx] += 1// rowBlocks.length
     })
@@ -105,6 +111,7 @@ module PDFStructure {
     var bestBreakScore = -1
     var bestBreakIdx = -1
     var breakScores = new Array(sortedHeights.length-1)
+    var totalStraddlerRatio = totalStraddlers / totalBlocks
     sortedHeights.forEach((height, idx) => {
         var heightKey = "" + height
         numMidStraddlingForward[idx] = totalStraddlers - numMidStraddlingSoFar[idx]
@@ -132,8 +139,11 @@ module PDFStructure {
           bestBreakIdx = idx
         }
         breakScores[idx] = breakScore
+        if (totalStraddlerRatio < 0.5) {
+          console.log("block:" + blocksByYOffset[heightKey][0].str())
+          console.log("isMid:" + isMidStraddler(blocksByYOffset[heightKey][0]))
+        }
     })
-    var totalStraddlerRatio = totalStraddlers / totalBlocks
     var bestTopFraction = (bestBreakIdx + 1) / sortedHeights.length
 
     if (totalStraddlerRatio > 0.75) {
@@ -173,6 +183,10 @@ module PDFStructure {
       var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], page.view[3]])
       var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], 0, rightXSpan[1], page.view[3]])
       panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
+    }
+    if (panelLayout.type != PanelLayoutType.SingleColumn) {
+      console.info("Fuck " + page.pageNumber)
+      debugger
     }
     //console.info("page num: " + page.pageNumber)
     //console.info("panel type: " + panelLayout.type)
