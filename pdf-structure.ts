@@ -96,6 +96,22 @@ module PDFStructure {
         var rowBlocks = blocksByYOffset[heightKey]
         numMidStraddlingSoFar[idx] = idx > 0 ? numMidStraddlingSoFar[idx-1] : 0
         numBlocksSoFar[idx] = idx > 0 ? numBlocksSoFar[idx-1] : 0
+        // Check row is long enough
+        var rowTextLength = 0
+        var nonSpace = /\S/
+        rowBlocks.forEach(b => {
+            b.contentItems.forEach(c => {
+                for (var idx = 0; idx < c.str.length; ++idx) {
+                  var ch = c.str.charAt(idx)
+                  if (ch != ' ' || ch != '\t') {
+                    rowTextLength += 1
+                  }
+                }
+            })
+        })
+        if (rowTextLength < 10) {
+          return;
+        }
         var numStraddlers = rowBlocks.filter(isMidStraddler).length
         numMidStraddlingSoFar[idx] += numStraddlers > 0 ? 1 : 0
         numBlocksSoFar[idx] += 1// rowBlocks.length
@@ -136,7 +152,7 @@ module PDFStructure {
     var totalStraddlerRatio = totalStraddlers / totalBlocks
     var bestTopFraction = (bestBreakIdx + 1) / sortedHeights.length
 
-    if (totalStraddlerRatio > 0.75) {
+    if (totalStraddlerRatio > 0.50) {
       var panels = [new Panel(PanelType.FullPage, page.view)]
       return {type: PanelLayoutType.SingleColumn, panels: panels}
     }
