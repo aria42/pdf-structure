@@ -153,7 +153,11 @@ module PDFStructure {
     var bestTopFraction = (bestBreakIdx + 1) / sortedHeights.length
 
     if (totalStraddlerRatio > 0.50) {
-      var panels = [new Panel(PanelType.FullPage, page.view)]
+      var xSpans = blocks.map(b => b.xSpan())
+      // cut out horizontal margin
+      var minX = Math.min.apply(null, xSpans.map(s => s[0]))
+      var maxX = Math.max.apply(null, xSpans.map(s => s[1]))
+      var panels = [new Panel(PanelType.FullPage, [minX, page.view[1], maxX, page.view[2]])]
       return {type: PanelLayoutType.SingleColumn, panels: panels}
     }
     var panelLayout: PanelLayout
