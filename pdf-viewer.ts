@@ -130,8 +130,6 @@ module StructuredPDFViewer {
 
   export function display(params: DisplayParams): Promise<Viewer> {
     return PDFStructure.fetch(params.pdfURL).then(structuredData => {
-        var page: PDFPageProxy = structuredData.pages[0].page
-        var canvas = params.canvasElem
         return new Viewer(params, structuredData)
       })
   }
