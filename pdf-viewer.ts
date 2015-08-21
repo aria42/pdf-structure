@@ -24,16 +24,16 @@ module StructuredPDFViewer {
       this.displayMode = DisplayMode.PANEL
     }
 
-    jumpToPage(pageNum: number) {
+    jumpToPage(pageNum: number): Promise<PDFPageProxy> {
       this.pageIdx = pageNum
       this.panelIdx = 0
-      this.rerenderPanel()
+      return this.rerenderPanel()
     }
 
-    jumpToPanel(pageIdx: number, panelIdx: number) {
+    jumpToPanel(pageIdx: number, panelIdx: number): Promise<PDFPageProxy> {
       this.pageIdx = pageIdx
       this.panelIdx = panelIdx
-      this.rerenderPanel()
+      return this.rerenderPanel()
     }
 
     jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
