@@ -2,7 +2,7 @@ module StructuredPDFViewer {
   export interface DisplayParams {
     canvasElem: HTMLCanvasElement
     pdfURL: string
-    sectionJumpVerticalPad: number
+    sectionJumpVerticalPad?: number
   }
 
   export enum DisplayMode {
