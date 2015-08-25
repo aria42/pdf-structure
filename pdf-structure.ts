@@ -344,7 +344,7 @@ module PDFStructure {
             pages: pages }
   }
 
-  var sectionHeader = /^([1-9]\d?)(?:[.](\d*))?\s+(.+)/
+  var sectionHeader = /^([1-9]\d?)[.]?(\d*)[.]?\s+(.+)/
 
   var sectionStopwords = {
     "stop": 1,
@@ -359,7 +359,7 @@ module PDFStructure {
       return null
     }
     var sectionNumber = parseInt(ms[1])
-    var subsectionNumber = ms[2] != null ? parseInt(ms[2]) : null
+    var subsectionNumber = ms[2] != null && ms[2].length > 0 ? parseInt(ms[2]) : null
     var sectionTitle = ms[3]
     // bogus section title length
     if (sectionTitle.length < 4 || sectionTitle.length > 100) {
