@@ -350,7 +350,11 @@ module PDFStructure {
     "stop": 1,
     "in": 1,
     "of": 1,
-    "and": 1
+    "and": 1,
+    "to": 1,
+    "the": 1,
+    "a": 1,
+    "on": 1
   }
 
   function toSectionData(item: MergedTextBlock): SectionData {
