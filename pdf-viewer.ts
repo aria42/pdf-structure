@@ -53,6 +53,10 @@ module StructuredPDFViewer {
       return renderPromise
     }
 
+    panel(pageIdx: number, panelIdx: number): PDFStructure.Panel {
+      return this.pdfData.pages[pageIdx].panelLayout.panels[panelIdx];
+    }
+
     nextPanel(): boolean {
       var numPanels = this.pdfData.pages[this.pageIdx].panelLayout.panels.length
       if (this.panelIdx + 1 < numPanels) {
