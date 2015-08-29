@@ -109,6 +109,7 @@ module StructuredPDFViewer {
       var verticStrech = dpiScale
       var panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
       this.panelSkew = canvas.width / panelWidthInCanvas
+
       var dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0];
       var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1];
 

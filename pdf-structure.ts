@@ -169,8 +169,16 @@ module PDFStructure {
       var maxX = Math.max.apply(null, bs.map(b => b.xSpan()[1]))
       return [minX, maxX]
     }
-    var leftXSpan = xSpanForBlocks(leftBottomBlocks)
-    var rightXSpan = xSpanForBlocks(rightBottomBlocks)
+    // HACK (codeviking) If we don't have left / right blocks at this point fallback to a straight
+    // split on the midpoint
+    if (leftBottomBlocks.length === 0 || rightBottomBlocks.length === 0) {
+      leftXSpan = [0, midX]
+      rightXSpan = [midX, page.view[2]]
+    } else {
+      var leftXSpan = xSpanForBlocks(leftBottomBlocks)
+      var rightXSpan = xSpanForBlocks(rightBottomBlocks)
+    }
+
     //debugger
     if (bestBreakScore > 0.2) {
       // HACK(aria42) Top of 1st page is generally title
