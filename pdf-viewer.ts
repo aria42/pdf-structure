@@ -1,6 +1,7 @@
 module StructuredPDFViewer {
   export interface DisplayParams {
-    canvasElem: HTMLCanvasElement
+    canvasElem: HTMLCanvasElement,
+    scrollParent: HTMLElement,
     pdfURL: string
     sectionJumpVerticalPad?: number
   }
@@ -49,7 +50,7 @@ module StructuredPDFViewer {
       var sectionY = sectionHeader.yOffset()
       var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
       var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 40)
-      this.displayParams.canvasElem.parentElement.scrollTop = scrollTop
+      this.displayParams.scrollParent.scrollTop = scrollTop
       return renderPromise
     }
 
