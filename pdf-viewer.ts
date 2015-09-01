@@ -37,6 +37,13 @@ module StructuredPDFViewer {
       return this.rerenderPanel()
     }
 
+    currentPanelSections(): Array<PDFStructure.SectionData> {
+      var currentPanel = this.panel(this.pageIdx, this.panelIdx);
+      return this.pdfData.sections.filter(
+        (s) => s.pageIdx === this.pageIdx && currentPanel.contains(s.contentHeader)
+      );
+    }
+
     jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
       this.pageIdx = section.pageIdx
       var pd = this.pdfData.pages[this.pageIdx]
