@@ -37,10 +37,10 @@ module StructuredPDFViewer {
       return this.rerenderPanel()
     }
 
-    currentPanelSections(): Array<PDFStructure.SectionData> {
-      var currentPanel = this.panel(this.pageIdx, this.panelIdx);
+    panelSections(pageIdx: number, panelIdx: number): Array<PDFStructure.SectionData> {
+      const panel = this.panel(pageIdx, panelIdx);
       return this.pdfData.sections.filter(
-        (s) => s.pageIdx === this.pageIdx && currentPanel.contains(s.contentHeader)
+        (s) => s.pageIdx === pageIdx && panel.contains(s.contentHeader)
       );
     }
 
