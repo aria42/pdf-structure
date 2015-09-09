@@ -132,7 +132,11 @@ module StructuredPDFViewer {
         scaledHeight = adjustedPanelHeight;
       }
 
-      canvasScale(viewport.width * this.panelSkew, scaledHeight)
+      let scaledWidth = viewport.width * this.panelSkew;
+      if (canvasParentWidth < scaledWidth) {
+        scaledWidth = canvasParentWidth;
+      }
+      canvasScale(scaledWidth, scaledHeight)
 
       canvasCtx.setTransform(
         horizStrech * this.panelSkew,
