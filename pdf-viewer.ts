@@ -93,16 +93,18 @@ module StructuredPDFViewer {
     }
 
     rerenderPanel() {
-      var pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
-      var panel: PDFStructure.Panel = pd.panelLayout.panels[this.panelIdx]
-      var canvas = this.displayParams.canvasElem
-      var parentStyles = window.getComputedStyle(canvas.parentElement)
-      var dpiScale = window.devicePixelRatio
-      var horizontalPadding = parseFloat(parentStyles.paddingLeft) + parseFloat(parentStyles.paddingRight)
-      var canvasParentWidth = canvas.parentElement.offsetWidth - horizontalPadding;
-      var origViewport = pd.page.getViewport(1.0)
+      const pd: PDFStructure.PageData = this.pdfData.pages[this.pageIdx]
+      const panel: PDFStructure.Panel = pd.panelLayout.panels[this.panelIdx]
+      const canvas = this.displayParams.canvasElem
+      const parentStyles = window.getComputedStyle(canvas.parentElement)
+      const dpiScale = window.devicePixelRatio
+      const horizontalPadding = parseFloat(parentStyles.paddingLeft) + parseFloat(parentStyles.paddingRight)
+      const canvasParentWidth = canvas.parentElement.offsetWidth - horizontalPadding;
+      const origViewport = pd.page.getViewport(1.0)
+
       this.viewportScale = canvasParentWidth / origViewport.width
-      var viewport = pd.page.getViewport(this.viewportScale)
+      const viewport = pd.page.getViewport(this.viewportScale)
+
       function canvasScale(w: number, h: number) {
         // Pixel width/height
         canvas.width = dpiScale * w
@@ -111,23 +113,45 @@ module StructuredPDFViewer {
         canvas.style.width = w + 'px'
         canvas.style.height = h + 'px'
       }
+
       canvasScale(canvasParentWidth, viewport.height * this.viewportScale);
-      var canvasCtx = canvas.getContext('2d')
-      var horizStrech = dpiScale
-      var verticStrech = dpiScale
-      var panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
+
+      const canvasCtx = canvas.getContext('2d')
+      const horizStrech = dpiScale
+      const verticStrech = dpiScale
+      const panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
+
       this.panelSkew = canvas.width / panelWidthInCanvas
 
-      var dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0];
-      var dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1];
+      const dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0];
+      const dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1];
 
-      canvasScale(viewport.width * this.panelSkew, viewport.height * this.panelSkew + dy / dpiScale)
-      canvasCtx.setTransform(horizStrech * this.panelSkew, 0, 0, verticStrech * this.panelSkew, dx, dy)
-      var renderContext = {
+      const adjustedPanelHeight = panel.height() * this.panelSkew + dy / dpiScale;
+      let scaledHeight = viewport.height * this.panelSkew + dy / dpiScale;
+      if (adjustedPanelHeight < scaledHeight) {
+        scaledHeight = adjustedPanelHeight;
+      }
+
+      let scaledWidth = viewport.width * this.panelSkew;
+      if (canvasParentWidth < scaledWidth) {
+        scaledWidth = canvasParentWidth;
+      }
+      canvasScale(scaledWidth, scaledHeight)
+
+      canvasCtx.setTransform(
+        horizStrech * this.panelSkew,
+        0,
+        0,
+        verticStrech * this.panelSkew,
+        dx,
+        dy
+      )
+
+      const renderContext = {
         canvasContext: canvasCtx,
         viewport: viewport
       }
-      var renderPromise = PDFStructure.toPromise(pd.page.render(renderContext))
+      const renderPromise = PDFStructure.toPromise(pd.page.render(renderContext))
       renderPromise.then(ignore => {
         if (false && panel.type == PDFStructure.PanelType.TopHeader) {
           canvasCtx.globalAlpha = 0.1
