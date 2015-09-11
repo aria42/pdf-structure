@@ -179,6 +179,15 @@ module PDFStructure {
       var rightXSpan = xSpanForBlocks(rightBottomBlocks)
     }
 
+    var leftBottom, rightBottom
+    if (leftBottomBlocks.length === 0 || rightBottomBlocks.length === 0) {
+      leftBottom = page.view[3]
+      rightBottom = page.view[3]
+    } else {
+      leftBottom = 0.5 * (page.view[3] +   Math.max.apply(null, leftBottomBlocks.map(b => b.ySpan()[1])))
+      rightBottom = 0.5 * (page.view[3] + Math.max.apply(null, rightBottomBlocks.map(b => b.ySpan()[1])))
+    }
+
     //debugger
     if (bestBreakScore > 0.2) {
       // HACK(aria42) Top of 1st page is generally title
@@ -204,12 +213,12 @@ module PDFStructure {
         topOfBottomColumn = bottomOfBreak
       }
       var topBottomBreak = 0.5 * (bottomOfBreak +  topOfBottomColumn)
-      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], topBottomBreak, leftXSpan[1], page.view[3]])
-      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], topBottomBreak, rightXSpan[1], page.view[3]])
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], topBottomBreak, leftXSpan[1], leftBottom])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], topBottomBreak, rightXSpan[1], rightBottom])
       panelLayout = {type: PanelLayoutType.TopFullWidthTwoColumn, panels: [topPanel, leftColumn, rightColumn]}
     } else {
-      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], page.view[3]])
-      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], 0, rightXSpan[1], page.view[3]])
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], leftBottom])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], 0, rightXSpan[1], rightBottom])
       panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
     }
     //console.info("page num: " + page.pageNumber)
