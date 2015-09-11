@@ -184,9 +184,10 @@ module PDFStructure {
       leftBottom = page.view[3]
       rightBottom = page.view[3]
     } else {
-      // Add 5 pixels to ensrue we don't cut off descenders
-      leftBottom = Math.max.apply(null, leftBottomBlocks.map(b => b.ySpan()[1])) + 5
-      rightBottom = Math.max.apply(null, rightBottomBlocks.map(b => b.ySpan()[1])) + 5
+      // Add 5 pixels for descenders, and another 15 arbitrarily as the bottom crop seems
+      // to be consistently tighter
+      leftBottom = Math.max.apply(null, leftBottomBlocks.map(b => b.ySpan()[1])) + 15
+      rightBottom = Math.max.apply(null, rightBottomBlocks.map(b => b.ySpan()[1])) + 15
     }
 
     var topOfBottomColumn
