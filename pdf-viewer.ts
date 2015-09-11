@@ -44,7 +44,7 @@ module StructuredPDFViewer {
       );
     }
 
-    jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
+    jumpToSection(section: PDFStructure.SectionData): Promise<number> {
       this.pageIdx = section.pageIdx
       var pd = this.pdfData.pages[this.pageIdx]
       var sectionHeader = section.contentHeader
@@ -58,7 +58,9 @@ module StructuredPDFViewer {
       var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
       var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 40)
       this.displayParams.scrollParent.scrollTop = scrollTop
-      return renderPromise
+      return renderPromise.then(() => {
+        return dy;
+      });
     }
 
     panel(pageIdx: number, panelIdx: number): PDFStructure.Panel {
