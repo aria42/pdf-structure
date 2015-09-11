@@ -194,8 +194,18 @@ module PDFStructure {
       var maxHeight = Math.max.apply(null, breakBlocks.map(b => b.maxHeight()))
       var topViewBounds = [topXSpan[0],0,topXSpan[1], bottomOfBreak - maxHeight]
       var topPanel = new Panel(PanelType.TopHeader, topViewBounds)
-      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], bottomOfBreak, leftXSpan[1], page.view[3]])
-      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], bottomOfBreak, rightXSpan[1], page.view[3]])
+      // mid-way of top of bottom columns and break
+      var topOfBottomColumn
+      if (leftBottomBlocks.length > 0 && rightBottomBlocks.length > 0) {
+        var leftTop = Math.min.apply(null, leftBottomBlocks.map(b => b.ySpan()[0]))
+        var rightTop = Math.min.apply(null, rightBottomBlocks.map(b => b.ySpan()[0]))
+        topOfBottomColumn = Math.max.apply(null, [leftTop, rightTop])
+      } else {
+        topOfBottomColumn = bottomOfBreak
+      }
+      var topBottomBreak = 0.5 * (bottomOfBreak +  topOfBottomColumn)
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], topBottomBreak, leftXSpan[1], page.view[3]])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], topBottomBreak, rightXSpan[1], page.view[3]])
       panelLayout = {type: PanelLayoutType.TopFullWidthTwoColumn, panels: [topPanel, leftColumn, rightColumn]}
     } else {
       var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], page.view[3]])
