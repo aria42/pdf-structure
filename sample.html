@@ -17,10 +17,11 @@
         var canvasElem = document.getElementById('pdfCanvas');
         var pdfViewer;
         StructuredPDFViewer.display({
-          pdfURL: "test-pdfs/openie-relation.pdf",
+          pdfURL: "test-pdfs/openie.pdf",
           canvasElem: canvasElem
         }).then(function(viewer)  {
           pdfViewer = viewer;
+          window.pdfViewer = viewer;
           var sections = viewer.pdfData.sections;
           var select = document.getElementsByTagName('select')[0]
           sections.forEach(function(section, idx) {
