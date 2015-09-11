@@ -184,8 +184,18 @@ module PDFStructure {
       leftBottom = page.view[3]
       rightBottom = page.view[3]
     } else {
-      leftBottom = 0.5 * (page.view[3] +   Math.max.apply(null, leftBottomBlocks.map(b => b.ySpan()[1])))
-      rightBottom = 0.5 * (page.view[3] + Math.max.apply(null, rightBottomBlocks.map(b => b.ySpan()[1])))
+      // Add 5 pixels to ensrue we don't cut off descenders
+      leftBottom = Math.max.apply(null, leftBottomBlocks.map(b => b.ySpan()[1])) + 5
+      rightBottom = Math.max.apply(null, rightBottomBlocks.map(b => b.ySpan()[1])) + 5
+    }
+
+    var topOfBottomColumn
+    if (leftBottomBlocks.length > 0 && rightBottomBlocks.length > 0) {
+      var leftTop = Math.min.apply(null, leftBottomBlocks.map(b => b.ySpan()[0]))
+      var rightTop = Math.min.apply(null, rightBottomBlocks.map(b => b.ySpan()[0]))
+      topOfBottomColumn = Math.max.apply(null, [leftTop, rightTop])
+    } else if(bestBreakScore > 0.2) {
+      topOfBottomColumn = sortedHeights[bestBreakIdx]
     }
 
     //debugger
@@ -212,13 +222,20 @@ module PDFStructure {
       } else {
         topOfBottomColumn = bottomOfBreak
       }
-      var topBottomBreak = 0.5 * (bottomOfBreak +  topOfBottomColumn)
+      // 5 pixels makes sure we don't cut off ascenders
+      var topBottomBreak = topOfBottomColumn - 5;
       var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], topBottomBreak, leftXSpan[1], leftBottom])
       var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], topBottomBreak, rightXSpan[1], rightBottom])
       panelLayout = {type: PanelLayoutType.TopFullWidthTwoColumn, panels: [topPanel, leftColumn, rightColumn]}
     } else {
-      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], 0, leftXSpan[1], leftBottom])
-      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], 0, rightXSpan[1], rightBottom])
+      var top = 0;
+      if (leftBottomBlocks.length > 0 && rightBottomBlocks.length > 0) {
+        var leftTop = Math.min.apply(null, leftBottomBlocks.map(b => b.ySpan()[0]))
+        var rightTop = Math.min.apply(null, rightBottomBlocks.map(b => b.ySpan()[0]))
+        top = Math.max.apply(null, [leftTop, rightTop])
+      }
+      var leftColumn = new Panel(PanelType.LeftColumn, [leftXSpan[0], top, leftXSpan[1], leftBottom])
+      var rightColumn = new Panel(PanelType.RightColumn, [rightXSpan[0], top, rightXSpan[1], rightBottom])
       panelLayout = {type: PanelLayoutType.TwoColumn, panels: [leftColumn, rightColumn]}
     }
     //console.info("page num: " + page.pageNumber)
