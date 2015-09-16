@@ -44,7 +44,7 @@ module StructuredPDFViewer {
       );
     }
 
-    jumpToSection(section: PDFStructure.SectionData): Promise<PDFPageProxy> {
+    jumpToSection(section: PDFStructure.SectionData): Promise<number> {
       this.pageIdx = section.pageIdx
       var pd = this.pdfData.pages[this.pageIdx]
       var sectionHeader = section.contentHeader
@@ -58,7 +58,9 @@ module StructuredPDFViewer {
       var dy = this.viewportScale * this.panelSkew * (sectionY - panelY)
       var scrollTop = dy - (this.displayParams.sectionJumpVerticalPad || 40)
       this.displayParams.scrollParent.scrollTop = scrollTop
-      return renderPromise
+      return renderPromise.then(() => {
+        return dy;
+      });
     }
 
     panel(pageIdx: number, panelIdx: number): PDFStructure.Panel {
@@ -117,32 +119,21 @@ module StructuredPDFViewer {
       canvasScale(canvasParentWidth, viewport.height * this.viewportScale);
 
       const canvasCtx = canvas.getContext('2d')
-      const horizStrech = dpiScale
-      const verticStrech = dpiScale
       const panelWidthInCanvas = panel.width() * this.viewportScale * dpiScale
 
       this.panelSkew = canvas.width / panelWidthInCanvas
 
-      const dx = - this.panelSkew * horizStrech * this.viewportScale * panel.bounds[0];
-      const dy = - this.panelSkew * verticStrech * this.viewportScale * panel.bounds[1];
+      const dx = - this.panelSkew * dpiScale * this.viewportScale * panel.bounds[0];
+      const dy = - this.panelSkew * dpiScale * this.viewportScale * panel.bounds[1];
 
-      const adjustedPanelHeight = panel.height() * this.panelSkew + dy / dpiScale;
-      let scaledHeight = viewport.height * this.panelSkew + dy / dpiScale;
-      if (adjustedPanelHeight < scaledHeight) {
-        scaledHeight = adjustedPanelHeight;
-      }
-
-      let scaledWidth = viewport.width * this.panelSkew;
-      if (canvasParentWidth < scaledWidth) {
-        scaledWidth = canvasParentWidth;
-      }
-      canvasScale(scaledWidth, scaledHeight)
+      const adjustedPanelHeight = panel.height() * this.viewportScale * this.panelSkew;
+      canvasScale(canvasParentWidth, adjustedPanelHeight)
 
       canvasCtx.setTransform(
-        horizStrech * this.panelSkew,
+        dpiScale * this.panelSkew,
         0,
         0,
-        verticStrech * this.panelSkew,
+        dpiScale * this.panelSkew,
         dx,
         dy
       )
@@ -155,7 +146,7 @@ module StructuredPDFViewer {
       renderPromise.then(ignore => {
         if (false && panel.type == PDFStructure.PanelType.TopHeader) {
           canvasCtx.globalAlpha = 0.1
-          var panelHeight = this.panelSkew * verticStrech * this.viewportScale * panel.height()
+          var panelHeight = this.panelSkew * dpiScale * this.viewportScale * panel.height()
           canvasCtx.fillStyle="black"
           canvasCtx.fillRect(0,0,canvas.width,canvas.height-panelHeight)
           //debugger
