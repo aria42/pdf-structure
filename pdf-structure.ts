@@ -120,7 +120,7 @@ module PDFStructure {
     var totalStraddlers = numMidStraddlingSoFar[sortedHeights.length-1]
     var bestBreakScore = -1
     var bestBreakIdx = -1
-    var breakScores = new Array(sortedHeights.length-1)
+    var breakScores = sortedHeights.length > 0 ? new Array(sortedHeights.length-1) : null
     sortedHeights.forEach((height, idx) => {
         var heightKey = "" + height
         numMidStraddlingForward[idx] = totalStraddlers - numMidStraddlingSoFar[idx]
