@@ -1,0 +1,26 @@
+{
+  "name": "pdf-structure",
+  "version": "0.1.0",
+  "description": "PDF.js with structure for research papers (academic, medical, etc.).",
+  "main": "pdf-viewer.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "tsd reinstall && tsc -w",
+    "serve": "node ./server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aria42/pdf-structure.git"
+  },
+  "author": "Aria Haghighi",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/aria42/pdf-structure/issues"
+  },
+  "homepage": "https://github.com/aria42/pdf-structure#readme",
+  "devDependencies": {
+    "express": "^4.13.3",
+    "tsd": "^0.6.4",
+    "typescript": "^1.6.2"
+  }
+}
