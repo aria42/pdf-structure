@@ -4,3 +4,6 @@
 typings/**
 *.tsc.js
 *.tsc.js.map
+# Node Dependencies
+node_modules/
+npm-debug.log
