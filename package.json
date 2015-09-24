@@ -1,11 +1,12 @@
 {
   "name": "pdf-structure",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "PDF.js with structure for research papers (academic, medical, etc.).",
   "main": "pdf-viewer.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "tsd reinstall && tsc -w",
+    "build": "tsd reinstall && tsc --out dist/pdf-structure.tsc.js",
     "serve": "node ./server.js"
   },
   "repository": {
